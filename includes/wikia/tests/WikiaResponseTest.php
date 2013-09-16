@@ -97,7 +97,7 @@ class WikiaResponseTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals( 2, count( $this->object->getData() ) );
 		$this->assertEquals( $val1['val'], $this->object->getVal( $val1['key'] ) );
 		$this->assertEquals( $val2['val'], $this->object->getVal( $val2['key'] ) );
-		$this->assertEquals( 'HelloWorld', $this->object->getVal( 'nonExistentVal', 'HelloWorld' ) );
+		$this->assertEquals( 'ArticleList', $this->object->getVal( 'nonExistentVal', 'ArticleList' ) );
 
 		$this->object->setData( array() );
 		$this->assertEmpty( $this->object->getData() );
@@ -107,21 +107,21 @@ class WikiaResponseTest extends PHPUnit_Framework_TestCase {
 		$this->object->setBody( 'Hello' );
 		$this->object->appendBody( 'World' );
 
-		$this->assertEquals( 'HelloWorld', $this->object->getBody() );
+		$this->assertEquals( 'ArticleList', $this->object->getBody() );
 
 		ob_start();
 		print $this->object;
 		$buffer = ob_get_contents();
 		ob_end_clean();
 
-		$this->assertEquals( 'HelloWorld', $buffer );
+		$this->assertEquals( 'ArticleList', $buffer );
 
 		ob_start();
 		$this->object->printText();
 		$buffer = ob_get_contents();
 		ob_end_clean();
 
-		$this->assertEquals( 'HelloWorld', $buffer );
+		$this->assertEquals( 'ArticleList', $buffer );
 	}
 
 	public function formatDataProvider() {

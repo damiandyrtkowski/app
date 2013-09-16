@@ -12,6 +12,8 @@ $dir = dirname(__FILE__) . '/';
 
 
 $app->registerClass('ArticleList', $dir . 'ArticleList.class.php');
+$app->registerClass('BlogNewsItem', $dir . 'BlogNewsItem.class.php');
+$app->registerClass('ArticleListAjaxController', $dir. 'ArticleListAjaxController.php');
 $app->registerClass('ArticleListSpecialController', $dir . 'ArticleListSpecialController.class.php');
 $app->registerSpecialPage('ArticleList', 'ArticleListSpecialController');
 $app->registerExtensionMessageFile('ArticleList', $dir . 'ArticleList.i18n.php');

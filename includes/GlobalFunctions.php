@@ -2339,7 +2339,8 @@ define( 'TS_ISO_8601_BASIC', 9 );
  * @return Mixed: String / false The same date in the format specified in $outputtype or false
  */
 function wfTimestamp( $outputtype = TS_UNIX, $ts = 0 ) {
-	$uts = 0;
+
+    $uts = 0;
 	$da = array();
 	$strtime = '';
 
