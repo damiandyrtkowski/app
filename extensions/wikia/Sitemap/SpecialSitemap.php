@@ -40,6 +40,8 @@ $dir = dirname( __FILE__ ) . '/';
 $wgExtensionMessagesFiles['Sitemap'] = $dir . 'Sitemap.i18n.php';
 $wgExtensionMessagesFiles['Sitemap'] = $dir . 'Sitemap.alias.php';
 $wgAutoloadClasses['SitemapPage'] = $dir . 'SpecialSitemap_body.php';
+$wgAutoloadClasses['BlogNewsItem'] = $dir . 'NewsSitemapItem.php';
+$wgAutoloadClasses['NewsSiteMap'] = $dir . 'NewsSitemap.php';
 $wgSpecialPages['Sitemap'] = 'SitemapPage';
 $wgSpecialPageGroups['Sitemap'] = 'wikia';
 

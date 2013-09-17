@@ -73,43 +73,71 @@ class SitemapPage extends UnlistedSpecialPage {
 	public function execute( $subpage ) {
 		global $wgRequest, $wgUser, $wgOut;
 
-		/**
+         /**
 		 * subpage works as type param, param has precedence, default is "index"
 		 */
-		$this->mType = "index";
+		$this->mType = "index";  // domysla wartosc
 		if ( !empty( $subpage ) ) {
-			$this->mType = $subpage;
-		}
+			$this->mType = $subpage;    // jezeli subpage nie jest pusty to ustawia daje go na  mType
 
-		$t = $wgRequest->getText( "type", "" );
+        }
+
+
+		$t = $wgRequest->getText( "type", "" );  // bierze to co jest po ukosniku w urlu
 		if ( $t != "" ) {
-			$this->mType = $t;
+			$this->mType = $t;   // jezeli parametr type w requescie nie jest pusty to ustawia go na mType
 		}
 
-		$this->parseType();
+		$this->parseType();   // parsuje typ requestu,
+                              // ustawia mType, mNamespace, mPage dla sitemap
+                                // mType mNamespace dla indexu
+                                // mType i mGoogleCode dla google
 
 		if( $this->mType == "google" ) {
-			$this->verifyGoogle();
+			$this->verifyGoogle();          //zwraca google site verification lub go away
 		}
 		else {
-			$this->mTitle = SpecialPage::getTitleFor( "Sitemap", $subpage );
-			$this->getNamespacesList();
-			if ( $this->mType == "namespace" ) {
+			$this->mTitle = SpecialPage::getTitleFor( "Sitemap", $subpage );  //zwraca object title
+
+            $this->mNamespaces = array();
+            $this->getNamespacesList();   // pobiera do zmiennej mNamespaces liste namespaceow za wyjatkiem tych w exclude array
+			if ( $this->mType == "namespace" ) {   // jezeli parse type zwrocilo mtype == namespace
 				$wgOut->disable();
 
-				header( "Content-type: application/x-gzip" );
+                 // odkomentowac pozniej, zrobione po to zeby nie pobieralo mi pliku
+				header( "Content-type: application/x-gzip" );    // te naglowki powoduja pobrania prawdopodobnie
 				header( "Cache-control: max-age=86400", true );
+
 				print $this->generateNamespace();
+
+
 			}
+
+            elseif($this->mType == "news_site_namespace")
+            {
+
+                $wgOut->disable();
+
+                 header( "Content-type: application/x-gzip" );    // te naglowki powoduja pobrania prawdopodobnie
+                 header( "Cache-control: max-age=86400", true );
+
+
+                $newsite = new NewsSiteMap();
+                $data = $newsite->GetData();
+                $xml = $newsite->GenerateXml($data);
+                print gzencode($xml);
+
+            }
+
 			else if($subpage == 'sitemap-index.xml') {
 				$this->generateIndex();
 			}
 			else {
-				$this->print404();
+
+				$this->print404();   // out error
 			}
 		}
-	}
-
+    }
 	/**
 	 * get all namespaces, take them from article so will only have
 	 * pages for existed namespaces
@@ -118,6 +146,8 @@ class SitemapPage extends UnlistedSpecialPage {
 	 */
 	public function getNamespacesList() {
 		global $wgSitemapNamespaces;
+
+        $this->mNamespaces = array();
 
 		if ( is_array( $wgSitemapNamespaces ) ) {
 			$this->mNamespaces = $wgSitemapNamespaces;
@@ -192,14 +222,26 @@ class SitemapPage extends UnlistedSpecialPage {
 		 * index is named like sitemap-index-wikicities.xml
 		 */
 		if ( preg_match( "/^sitemap\-.+NS_(\d+)\-(\d+)/", $this->mType, $match ) ) {
-			$this->mType = "namespace";
+
+
+            $this->mType = "namespace";
 			$this->mNamespace = $match[ 1 ];
 			$this->mPage = $match[ 2 ];
 		}
+
+        elseif ( preg_match( "/^sitemap\-.+NSM_(\d+)\-(\d+)/", $this->mType, $match ) ) {
+
+            $this->mType = "news_site_namespace";
+            $this->mNamespace = $match[ 1 ];   // ustawic sztywno na 500 bo sa generowane tylko dla 500
+            $this->mPage = $match[ 2 ];
+
+        }
+
 		elseif( preg_match( "/^google([0-9a-f]{16}).html$/", $this->mType, $match ) ) {
 			$this->mType = "google";
 			$this->mGoogleCode = $match[ 1 ];
 		}
+
 		else {
 			$this->mType = "index";
 			$this->mNamespace = false;
@@ -212,13 +254,25 @@ class SitemapPage extends UnlistedSpecialPage {
 	 * @access private
 	 */
 	private function generateIndex() {
-		global $wgServer, $wgOut, $wgMemc, $wgContentNamespaces;
+
+
+
+        global $wgServer, $wgOut, $wgMemc, $wgContentNamespaces;
+
+       // var_dump($wgServer);
+
 
 		wfProfileIn( __METHOD__ );
 
-		$timestamp = wfTimestamp( TS_ISO_8601, wfTimestampNow() );
-		$id = wfWikiID();
+		$timestamp = wfTimestamp( TS_ISO_8601, wfTimestampNow() );  //aktualny as konwertowany do formatu wiki
+		//var_dump($timestamp);
 
+
+        $id = wfWikiID();    //  var_dump zwraca 'wikia dobre pytanie pewnie jakis identyfikator danej wiki
+
+        //var_dump($id);
+
+        //die();
 		$wgOut->disable();
 
 		$out = "";
@@ -231,6 +285,9 @@ class SitemapPage extends UnlistedSpecialPage {
 
 		$index = $wgMemc->get( wfMemcKey( "sitemap-index") );
 		if( is_array( $index ) ) {
+
+
+
 			foreach( $index as $namespace => $pages ) {
 				$cnt = 0;
 				foreach( $pages as $page ) {
@@ -241,17 +298,31 @@ class SitemapPage extends UnlistedSpecialPage {
 					$out .= "\t</sitemap>\n";
 					$cnt++;
 				}
+
 			}
+            $out .= "\t<sitemap>\n";
+            $out .= "\t\t<loc>{$wgServer}/sitemap-{$id}-NSM_500-0.xml.gz</loc>\n";
+            $out .= "\t\t<lastmod>{$timestamp}</lastmod>\n";
+            $out .= "\t</sitemap>\n";
 		}
 		else {
+
+
 			$this->getNamespacesList();
+
 			foreach ( $this->mNamespaces as $namespace ) {
 				$out .= "\t<sitemap>\n";
 				$out .= "\t\t<loc>{$wgServer}/sitemap-{$id}-NS_{$namespace}-0.xml.gz</loc>\n";
-				$out .= "\t\t<lastmod>{$timestamp}</lastmod>\n";
+				$out .= "\t\t<lastmod></lastmod>\n";
 				$out .= "\t</sitemap>\n";
 			}
-		}
+
+            $out .= "\t<sitemap>\n";
+            $out .= "\t\t<loc>{$wgServer}/sitemap-{$id}-NSM_500-0.xml.gz</loc>\n";
+            $out .= "\t\t<lastmod>{$timestamp}</lastmod>\n";
+            $out .= "\t</sitemap>\n";
+
+        }
 
 		$out .= "</sitemapindex>\n";
 
@@ -265,11 +336,14 @@ class SitemapPage extends UnlistedSpecialPage {
 	 * @access private
 	 */
 	private function generateNamespace( Array $sitemapIndex = null, $forceUpdate = false ) {
-		global $wgMemc;
+
+
+      	global $wgMemc;
 		wfProfileIn( __METHOD__ );
 
-		if( !$forceUpdate ) {
-			$namespaceSitemap = $this->generateNamespaceFromDb();
+        if( !$forceUpdate )    // jezeli nie wymuszono update
+        {
+		    $namespaceSitemap = $this->generateNamespaceFromDb();   // pobiera pojedyncze pole z bazy danych (w ktorym znajduje sie cholernie dlugi xml z fragmentem calego spisu
 			if( !empty($namespaceSitemap) ) {
 				// this sitemap was pre-generated by the maintenance script and stored in db
 				wfProfileOut( __METHOD__ );
@@ -281,6 +355,8 @@ class SitemapPage extends UnlistedSpecialPage {
 				return gzencode( str_replace("http://localhost/", "http://".$_SERVER['SERVER_NAME']."/", gzdecode($namespaceSitemap)) );
 			}
 		}
+
+
 
 		$dbr = wfGetDB( DB_SLAVE, "vslow" );
 
@@ -317,16 +393,16 @@ class SitemapPage extends UnlistedSpecialPage {
 		}
 		$startTime = microtime(true);
 
-		$out .= "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"" . ( $includeVideo ? ' xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"' : '' ) . ">\n";
-		while ( $row = $dbr->fetchObject( $sth ) ) {
-			$size = strlen( $out );
+		$out .= "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"" . ( $includeVideo ? ' xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"' : '' ) . ">\n";    // okreslenie naglowka
+		while ( $row = $dbr->fetchObject( $sth ) ) {            // wlasciwe dzialanie skryptu
+			$size = strlen( $out );                             // okreslenie parametrow
 			$title = Title::makeTitle( $row->page_namespace, $row->page_title );
 			$stamp = wfTimestamp( TS_ISO_8601, $row->page_touched );
 			$prior = isset( $this->mPriorities[ $row->page_namespace ] )
 				? $this->mPriorities[ $row->page_namespace ]
 				: "0.5";
 
-			$entry = $this->titleEntry( $title, $stamp, $prior, $includeVideo );
+			$entry = $this->titleEntry( $title, $stamp, $prior, $includeVideo );  // wywolanie funkcji ktora generuje xml dla pojedynczej strony
 
 			/**
 			 * break if it's to big
@@ -368,6 +444,7 @@ class SitemapPage extends UnlistedSpecialPage {
 		return $sitemapContent;
 	}
 
+    //ZAPISANIE DO BAZY DANYCH UAKTUALNIONEJ TRESCI XMLA
 	private function storeNamespaceToDb( $sitemapNamespaceContent ) {
 		wfProfileIn( __METHOD__ );
 
@@ -390,7 +467,7 @@ class SitemapPage extends UnlistedSpecialPage {
 	}
 
 	private function titleEntry( Title $title, $date, $priority, $includeVideo = false ) {
-		return
+		return            // prawdopodobnie dolaczenie do xmla pojedynczego zestawu tagow dla jednej strony
 			"\t<url>\n" .
 			"\t\t<loc>{$title->getFullURL()}</loc>\n" .
 			"\t\t<lastmod>$date</lastmod>\n" .
@@ -400,6 +477,9 @@ class SitemapPage extends UnlistedSpecialPage {
 	}
 
 	private function videoEntry( Title $title ) {
+
+		// generowanie sitemap dla video, raczej nieistotne dla mnie
+
 		wfProfileIn( __METHOD__ );
 
 		$file = wfFindFile( $title );
